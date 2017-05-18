@@ -5,7 +5,17 @@ import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.params.HttpMethodParams;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import spider.study.queue.Queue;
+import spider.study.queue.VisitedQueue;
+
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 
 /**
  * 下载器.
@@ -32,8 +42,8 @@ public class Downloader {
 			fileName = url.replaceAll("[\\?/:*|<>\"]", "_") + ".html";
 		} else {
 			// application/pdf类型
-			fileName = url.replaceAll("[\\?/:*|<>\"]", "_") + "."
-					+ contentType.substring(contentType.lastIndexOf("/") + 1);
+			fileName = url.replaceAll("[\\?/:.*|<>\"]", "_")/* + "."
+					+ contentType.substring(contentType.lastIndexOf("/") + 1)*/;
 		}
 
 		return fileName;
@@ -42,79 +52,89 @@ public class Downloader {
 
 	/**
 	 * 将数据保存为本地文件.
-	 * @param data 数据
-	 * @param filePath 文件路径
+	 * @param url url路径
+	 * @param fileName 文件名
 	 */
-	public void saveToLocal(byte[] data, String filePath) {
-		FileOutputStream fos = null;
-		DataOutputStream out = null;
-		File file = new File(filePath);
-		try {
-			fos = new FileOutputStream(file);
-			out = new DataOutputStream(fos);
-			for (int i = 0; i < data.length; i++) {
-				out.write(data[i]);
-			}
-			out.flush();
-			out.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (fos != null) {
-				try {
-					fos.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+	public void saveToLocal(String url, String fileName) {
+	    String filePath = "test/";
+        InputStream inputStream = null;
+        FileOutputStream fos = null;
+        try {
+            // 建立连接
+            URL toUrl = new URL(url);
+            URLConnection urlConnection = toUrl.openConnection();
+            inputStream = urlConnection.getInputStream();
 
-			if (out != null) {
-				try {
-					out.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
+            // 保存文件到本地
+            File file = new File(filePath);
+            if (!file.exists()) {
+                file.mkdirs();
+            }
+            fos = new FileOutputStream(filePath + "/" + fileName);
+            int len = 0;
+            byte[] data = new byte[1024];
+            while ((len = inputStream.read(data)) != -1) {
+                fos.write(data, 0, len);
+            }
+            System.out.println("下载成功.....");
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
 	/**
 	 * 下载网页
 	 * @param url 网页URL
 	 * @return 文件路径
 	 */
-	public String downloadFile(String url) {
+	public String downloadFile(String url, Queue queue, VisitedQueue visitedQueue) {
+	    System.out.println("开始一个页面");
 		String filePath = null;
-		// 创建HttpClient对象
-		HttpClient httpClient = new HttpClient();
-		// 设置HTTP连接超时 5s
-		httpClient.getHttpConnectionManager().getParams().setConnectionTimeout(5000);
-		// 生成GetMethod方法
-		GetMethod getMethod = new GetMethod(url);
-		// 设置get请求超时5s
-		getMethod.getParams().setParameter(HttpMethodParams.SO_TIMEOUT, 5000);
-		// 设置请求重试处理
-		getMethod.getParams().setParameter(HttpMethodParams.RETRY_HANDLER, new DefaultHttpMethodRetryHandler());
-		// 执行HTTP GET请求
+		String src = null;
+		String fileName = null;
 		try {
-			int statusCode = httpClient.executeMethod(getMethod);
-			// 判断访问的状态码
-			if (statusCode != HttpStatus.SC_OK) {
-				System.out.println("请求失败!");
-				filePath = null;
-			}
-			// 处理HTTP相应内容
-			byte[] responseBody = getMethod.getResponseBody();
-			// 生成URL
-			String contentType = getMethod.getResponseHeader("Content-Type").getValue();
-			filePath = "test/" + getFileNameByUrl(url, contentType);
-			saveToLocal(responseBody, filePath);
+			// 获取页面文档
+			Document document = Jsoup.connect(url).timeout(5000).get();
+            Elements links = document.select(/*"img[src]"*/"dt a");
+            for (Element element : links) {
+
+                // 将为访问的路径添加队列
+                String link = element.attr("href");
+                if (!visitedQueue.isContians(link)) {
+                    if (!queue.isContians(link)) {
+                        queue.add(link);
+                    }
+                }
+                System.out.println(link);
+            }
+
+            Elements imgs = document.select("img[src]");
+
+            for (Element img : imgs) {
+                //System.out.println(element.attr("alt") + " " + element.attr("src"));
+                src = img.attr("src");
+                fileName = getFileNameByUrl(src, "jpg");
+                saveToLocal(src, fileName);
+            }
+
 		} catch (IOException e) {
-			System.out.println("失败!!!");
 			e.printStackTrace();
-		} finally {
-			// 释放连接
-			getMethod.releaseConnection();
 		}
 		return filePath;
 	}

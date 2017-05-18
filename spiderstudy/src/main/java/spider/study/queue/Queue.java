@@ -46,4 +46,7 @@ public class Queue {
 		return queue.contains(url);
 	}
 
+	public LinkedList<String> getQueue() {
+		return queue;
+	}
 }
