@@ -25,7 +25,7 @@ public class Queue {
 	 * 获取一个URL,并且将该URL从队列中移除.
 	 * @return URL
 	 */
-	public String getUrl() {
+	public synchronized String getUrl() {
 		return queue.removeFirst();
 	}
 

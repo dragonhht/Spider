@@ -1,19 +1,13 @@
 package spider.study.handler;
 
-import org.apache.commons.httpclient.DefaultHttpMethodRetryHandler;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpStatus;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.params.HttpMethodParams;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import spider.study.queue.Queue;
 import spider.study.queue.VisitedQueue;
-
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -24,9 +18,19 @@ import java.net.URLConnection;
  * Date : 17-5-17
  * Time : 下午8:45
  */
-public class Downloader {
+public class Downloader implements Runnable {
 
-	/**
+    /** 将访问的URL队列. */
+    private Queue queue;
+    /** 已访问过的URL集合. */
+    private VisitedQueue visitedQueue;
+
+    public Downloader(Queue queue, VisitedQueue visitedQueue) {
+        this.queue = queue;
+        this.visitedQueue = visitedQueue;
+    }
+
+    /**
 	 * 通过URL获取文件名.
 	 * @param url URL
 	 * @param contentType 页面contentType
@@ -76,7 +80,7 @@ public class Downloader {
             while ((len = inputStream.read(data)) != -1) {
                 fos.write(data, 0, len);
             }
-            System.out.println("下载成功.....");
+           // System.out.println(Thread.currentThread().getName() +" : 下载成功.....");
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -121,7 +125,6 @@ public class Downloader {
                         queue.add(link);
                     }
                 }
-                System.out.println(link);
             }
 
             Elements imgs = document.select("img[src]");
@@ -139,4 +142,11 @@ public class Downloader {
 		return filePath;
 	}
 
+    public void run() {
+        while (true) {
+           if (!queue.isEmpty()) {
+               downloadFile(queue.getUrl(), queue, visitedQueue);
+           }
+        }
+    }
 }

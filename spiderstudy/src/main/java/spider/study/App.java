@@ -11,24 +11,25 @@ import spider.study.queue.VisitedQueue;
 public class App 
 {
     public static void main(String[] args) {
-        Thread thread = new Thread(new Runnable() {
-            public void run() {
-                boolean ok = true;
-                String url = "http://pic.yesky.com/";
-                Downloader downloader = new Downloader();
-                Queue queue = new Queue();
-                VisitedQueue visitedQueue = new VisitedQueue();
-                downloader.downloadFile(url, queue, visitedQueue);
-                while (ok) {
-                    if (!queue.isEmpty()) {
-                        url = queue.getUrl();
-                        downloader.downloadFile(url, queue, visitedQueue);
-                    } else {
-                        ok = false;
-                    }
-                }
-            }
-        });
-        thread.start();
+
+//        Thread thread = new Thread(new Runnable() {
+//            public void run() {
+//                boolean ok = true;
+//                String url = "http://pic.yesky.com/";
+//                Downloader downloader = new Downloader();
+//                Queue queue = new Queue();
+//                VisitedQueue visitedQueue = new VisitedQueue();
+//                queue.add(url);
+//                while (ok) {
+//                    url = queue.getUrl();
+//                    downloader.downloadFile(url, queue, visitedQueue);
+//                    if (queue.isEmpty()) {
+//                        ok = false;
+//                    }
+//                }
+//            }
+//        });
+//        thread.start();
+
     }
 }
